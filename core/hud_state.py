@@ -16,10 +16,8 @@ class HUDState:
         self.cooldown_until = 0
         self.prev_gray = None
         self._lock = threading.Lock()
-        self._processing_event = threading.Event() # Prevents thread pile-up
 
     def update_stability(self, frame):
-        # Downsample for faster stability checks on mobile
         small = cv2.resize(frame, (0,0), fx=0.5, fy=0.5)
         gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (15, 15), 0)
@@ -31,8 +29,6 @@ class HUDState:
             diff = cv2.absdiff(self.prev_gray, gray)
             motion = np.sum(cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1])
             self.prev_gray = gray
-            
-            # Sensitivity tuned for handheld mobile use
             self.is_stable = motion < 4000
             if self.is_stable:
                 if self.stable_since == 0:
@@ -42,35 +38,27 @@ class HUDState:
 
     def trigger_scan(self, pil_img):
         now = time.time()
-        # Check if we are already busy OR in cooldown
         if self.is_analyzing or now < self.cooldown_until:
             return
 
-        # Ensure we've been stable for at least 1.2 seconds
         if self.stable_since == 0 or (now - self.stable_since < 1.2):
             return
 
         def _async_scan(img_to_process):
             self.is_analyzing = True
-            self.current_data = None # Clear old data immediately
+            self.current_data = None
             try:
-                # 1. AI Analysis
                 raw_res = self.engine.analyze(img_to_process, self.allergies)
                 if raw_res and "error" not in raw_res:
-                    # 2. Translation
                     final_res = translate_payload(raw_res, self.lang)
                     with self._lock:
                         self.current_data = final_res
-                
-                # 3. Set Cooldown to prevent immediate re-triggering
                 self.cooldown_until = time.time() + 4.0
             except Exception as e:
                 print(f"HUD Engine Error: {e}")
             finally:
                 self.is_analyzing = False
-                del img_to_process # Explicit memory cleanup
 
-        # Launch the task in a detached thread
         thread = threading.Thread(target=_async_scan, args=(pil_img,), daemon=True)
         thread.start()
 
