@@ -1,0 +1,9 @@
+streamlit
+streamlit-webrtc
+opencv-python-headless
+Pillow
+groq
+deep-translator
+python-dotenv
+av
+numpy
