@@ -9,20 +9,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-st.set_page_config(layout="wide", page_title="NOMAD HUD", initial_sidebar_state="collapsed")
+st.set_page_config(
+    layout="wide", 
+    page_title="NOMAD // CORE", 
+    initial_sidebar_state="expanded"
+)
 
-def apply_mobile_theme():
+def apply_ui_overhaul():
     st.markdown("""
         <style>
         .main { background-color: #010203; }
-        [data-testid="stSidebar"] { background: rgba(0,0,0,0.9) !important; border-right: 1px solid #00f2ff; }
-        .st-emotion-cache-1vt4y65 { border: 1px solid #00f2ff; background: rgba(0,242,255,0.05); }
-        h1 { color: #00f2ff; font-family: monospace; letter-spacing: 2px; }
-        .phrase-card { color: #00f2ff; border-left: 2px solid #00f2ff; padding: 10px; background: rgba(0,242,255,0.1); margin: 10px 0; }
+        [data-testid="stSidebar"] { background: rgba(0,0,0,0.95) !important; border-right: 2px solid #00f2ff; }
+        h1 { color: #00f2ff; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: 3px; }
+        .stAlert { background: rgba(0, 242, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff; }
         </style>
     """, unsafe_allow_html=True)
 
-apply_mobile_theme()
+apply_ui_overhaul()
 
 if "engine" not in st.session_state:
     st.session_state.engine = NomadEngine()
@@ -31,48 +34,52 @@ hud.engine = st.session_state.engine
 
 def video_callback(frame):
     img = frame.to_ndarray(format="bgr24")
-    
-    # 1. Faster Stability Update
     hud.update_stability(img)
     
-    # 2. Non-blocking AI trigger
     if hud.is_stable and not hud.is_analyzing:
-        # Pass a COPY of the image to the thread to prevent frame corruption
+        # High-speed buffer copy for threading safety
         pil_copy = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)).copy()
         hud.trigger_scan(pil_copy)
         
-    # 3. Render AR Overlay
     processed_img = render_ar(img, hud)
-    
     return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
 
 st.title("NOMAD // CORE")
 
 with st.sidebar:
-    st.title("SYSTEM")
-    hud.lang = st.text_input("Language", "Tamil")
-    hud.allergies = st.text_area("Allergies", "Menthol")
+    st.header("SENSORS")
+    hud.lang = st.text_input("Translation Language", "Tamil")
+    hud.allergies = st.text_area("Restriction Protocol", "Menthol, Peanuts")
     
+    st.markdown("---")
     if hud.is_analyzing:
-        st.warning("⚡ ANALYZING PAYLOAD...")
+        st.info("⚡ ANALYZING TARGET...")
     elif hud.current_data:
         st.success(f"LOCKED: {hud.current_data.get('eng_name')}")
-        st.markdown(f"<div class='phrase-card'>{hud.current_data.get('consumer_phrase')}</div>", unsafe_allow_html=True)
+        st.code(hud.current_data.get('consumer_phrase'), language=None)
 
-# Optimized WebRTC for Mobile Performance
+# CLOUD FIX: Robust STUN Configuration for NAT Traversal
 webrtc_streamer(
-    key="nomad_v15_fixed",
+    key="nomad_v16_deploy",
     mode=WebRtcMode.SENDRECV,
     video_frame_callback=video_callback,
-    async_processing=True, # Allows the video to keep playing even if Python is slow
+    async_processing=True,
     media_stream_constraints={
         "video": {
-            "width": {"max": 1280},
-            "height": {"max": 720},
+            "width": {"ideal": 1280},
+            "height": {"ideal": 720},
             "facingMode": "environment",
-            "frameRate": {"max": 24} # Dropping to 24fps helps stability
+            "frameRate": {"ideal": 24}
         },
         "audio": False
     },
-    rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+    rtc_configuration={
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302"]},
+            {"urls": ["stun:stun1.l.google.com:19302"]},
+            {"urls": ["stun:stun2.l.google.com:19302"]},
+            {"urls": ["stun:stun3.l.google.com:19302"]},
+            {"urls": ["stun:stun4.l.google.com:19302"]}
+        ]
+    }
 )
