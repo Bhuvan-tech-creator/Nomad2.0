@@ -21,12 +21,12 @@ deep-translator
 # Deployment Instructions
 
 Create a .env file in the root directory
-'''bash
-GROQ_API_KEY = *key here*
-'''
 
-'''bash
+GROQ_API_KEY = *key here*
+
+Then, run these commands in terminal:
+
 pip install -r requirements.txt
 streamlit run main.py
-'''
+
 
