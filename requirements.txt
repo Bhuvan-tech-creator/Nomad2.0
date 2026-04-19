@@ -1,9 +1,9 @@
 streamlit
 streamlit-webrtc
 opencv-python-headless
+numpy
 Pillow
 groq
-deep-translator
 python-dotenv
+deep-translator
 av
-numpy
